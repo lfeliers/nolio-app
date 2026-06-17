@@ -1,13 +1,14 @@
-const CLIENT_ID = process.env.NOLIO_CLIENT_ID!;
-const CLIENT_SECRET = process.env.NOLIO_CLIENT_SECRET!;
-const REDIRECT_URI = process.env.NOLIO_REDIRECT_URI!;
 const BASE_URL = "https://www.nolio.io/api";
+
+function clientId() { return process.env.NOLIO_CLIENT_ID!; }
+function clientSecret() { return process.env.NOLIO_CLIENT_SECRET!; }
+function redirectUri() { return process.env.NOLIO_REDIRECT_URI!; }
 
 export function getAuthorizeUrl(state: string): string {
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    client_id: clientId(),
+    redirect_uri: redirectUri(),
     state,
   });
   return `${BASE_URL}/authorize/?${params}`;
@@ -19,7 +20,7 @@ export async function exchangeCodeForToken(code: string): Promise<{
   token_type: string;
   expires_in: number;
 }> {
-  const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+  const credentials = Buffer.from(`${clientId()}:${clientSecret()}`).toString("base64");
   const res = await fetch(`${BASE_URL}/token/`, {
     method: "POST",
     headers: {
@@ -29,7 +30,7 @@ export async function exchangeCodeForToken(code: string): Promise<{
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri(),
     }),
   });
   if (!res.ok) throw new Error(`Token exchange failed: ${await res.text()}`);
@@ -41,7 +42,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   refresh_token: string;
   token_type: string;
 }> {
-  const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+  const credentials = Buffer.from(`${clientId()}:${clientSecret()}`).toString("base64");
   const res = await fetch(`${BASE_URL}/token/`, {
     method: "POST",
     headers: {
