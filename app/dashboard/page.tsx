@@ -4,7 +4,7 @@ import { getIronSession } from "iron-session";
 import Link from "next/link";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { getAthletes, getTrainings, getPlannedTrainings } from "@/lib/nolio";
-import { upsertAthlete, upsertTraining } from "@/lib/db";
+import { getAnyUser, upsertAthlete, upsertTraining } from "@/lib/db";
 import FosterLoadChart from "./FosterLoadChart";
 
 export const dynamic = "force-dynamic";
@@ -104,9 +104,13 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  // Try session cookie first; fall back to DB (covers accounts linked via Streamlit)
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  if (!session.accessToken) {
-    redirect("/");
+  let accessToken: string = session.accessToken ?? "";
+  if (!accessToken) {
+    const dbUser = await getAnyUser();
+    if (!dbUser) redirect("/");
+    else accessToken = dbUser.accessToken;
   }
 
   const { monday, mondayStr, todayStr, tomorrowStr, sundayStr } = weekBounds();
@@ -115,7 +119,7 @@ export default async function DashboardPage({
   let athletes: Athlete[] = [];
   let fetchError: string | null = null;
   try {
-    const raw = await getAthletes(session.accessToken);
+    const raw = await getAthletes(accessToken);
     athletes = raw as Athlete[];
     await Promise.all(athletes.map((a) => upsertAthlete(a as Record<string, unknown>)));
   } catch (err) {
@@ -131,8 +135,8 @@ export default async function DashboardPage({
   if (selectedAthlete && selectedId) {
     try {
       const [t, p] = await Promise.all([
-        getTrainings(session.accessToken, selectedId, mondayStr, todayStr),
-        getPlannedTrainings(session.accessToken, selectedId, mondayStr, sundayStr),
+        getTrainings(accessToken, selectedId, mondayStr, todayStr),
+        getPlannedTrainings(accessToken, selectedId, mondayStr, sundayStr),
       ]);
       trainings = t as Training[];
       plannedFull = p as Training[];
