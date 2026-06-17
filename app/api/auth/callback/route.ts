@@ -4,15 +4,14 @@ import { getIronSession } from "iron-session";
 import { exchangeCodeForToken, getNolioUser } from "@/lib/nolio";
 import { upsertUser } from "@/lib/db";
 import { sessionOptions, SessionData } from "@/lib/session";
-
-const APP_URL = process.env.NOLIO_REDIRECT_URI!.replace("/api/auth/callback", "");
+import { appUrl } from "@/lib/url";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = req.nextUrl;
   const code = searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(`${APP_URL}/?error=missing_code`);
+    return NextResponse.redirect(`${appUrl()}/?error=missing_code`);
   }
 
   try {
@@ -33,9 +32,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     session.accessToken = tokenData.access_token;
     await session.save();
 
-    return NextResponse.redirect(APP_URL);
+    return NextResponse.redirect(appUrl());
   } catch (err) {
     console.error("OAuth callback error:", err);
-    return NextResponse.redirect(`${APP_URL}/?error=auth_failed`);
+    return NextResponse.redirect(`${appUrl()}/?error=auth_failed`);
   }
 }

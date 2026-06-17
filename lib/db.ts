@@ -1,4 +1,4 @@
-import { MongoClient, Db } from "mongodb";
+import { MongoClient, Db, Collection, Filter } from "mongodb";
 
 let client: MongoClient | null = null;
 
@@ -18,24 +18,27 @@ export interface StoredUser {
   profile: Record<string, unknown>;
 }
 
+function usersCol(): Collection<StoredUser> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return getDb().collection<any>("users") as Collection<StoredUser>;
+}
+
 export async function upsertUser(user: Omit<StoredUser, "fetchedAt">): Promise<void> {
-  await getDb()
-    .collection("users")
-    .updateOne(
-      { _id: user._id },
-      { $set: { ...user, fetchedAt: new Date().toISOString() } },
-      { upsert: true }
-    );
+  await usersCol().updateOne(
+    { _id: user._id } as Filter<StoredUser>,
+    { $set: { ...user, fetchedAt: new Date().toISOString() } },
+    { upsert: true }
+  );
 }
 
 export async function getAnyUser(): Promise<StoredUser | null> {
-  return getDb().collection<StoredUser>("users").findOne();
+  return usersCol().findOne();
 }
 
 export async function getUserById(id: string): Promise<StoredUser | null> {
-  return getDb().collection<StoredUser>("users").findOne({ _id: id });
+  return usersCol().findOne({ _id: id } as Filter<StoredUser>);
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  await getDb().collection("users").deleteOne({ _id: id });
+  await usersCol().deleteOne({ _id: id } as Filter<StoredUser>);
 }

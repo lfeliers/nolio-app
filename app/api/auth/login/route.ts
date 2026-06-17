@@ -5,11 +5,12 @@ import { randomBytes } from "crypto";
 import { getAuthorizeUrl } from "@/lib/nolio";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { getAnyUser } from "@/lib/db";
+import { appUrl } from "@/lib/url";
 
 export async function GET(): Promise<NextResponse> {
   const existing = await getAnyUser();
   if (existing) {
-    return NextResponse.redirect(new URL("/", process.env.NOLIO_REDIRECT_URI!.replace("/api/auth/callback", "")));
+    return NextResponse.redirect(appUrl());
   }
 
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
