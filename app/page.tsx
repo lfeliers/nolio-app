@@ -1,16 +1,25 @@
-import { cookies } from "next/headers";
-import { getIronSession } from "iron-session";
-import { sessionOptions, SessionData } from "@/lib/session";
 import { getAnyUser } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  // Suppress unused import warnings — session kept for future use
-  await getIronSession<SessionData>(await cookies(), sessionOptions);
-  const user = await getAnyUser();
+  let user = null;
+  let dbError: string | null = null;
+
+  try {
+    user = await getAnyUser();
+  } catch (err) {
+    dbError = err instanceof Error ? err.message : String(err);
+    console.error("DB error on home page:", err);
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
       <h1 className="text-3xl font-bold">Nolio App</h1>
+
+      {dbError && (
+        <p className="text-red-400 text-sm max-w-md text-center">DB error: {dbError}</p>
+      )}
 
       {user ? (
         <div className="flex flex-col items-center gap-4">
