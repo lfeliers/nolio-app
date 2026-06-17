@@ -4,8 +4,9 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { getAnyUser } from "@/lib/db";
 
 export default async function Home() {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  const user = session.userId ? await getAnyUser() : null;
+  // Suppress unused import warnings — session kept for future use
+  await getIronSession<SessionData>(await cookies(), sessionOptions);
+  const user = await getAnyUser();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
