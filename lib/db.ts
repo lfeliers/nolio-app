@@ -1,12 +1,14 @@
 import { MongoClient, Db, Collection, Filter } from "mongodb";
 
-let client: MongoClient | null = null;
+let clientPromise: Promise<MongoClient> | null = null;
 
-function getDb(): Db {
-  if (!client) {
-    client = new MongoClient(process.env.MONGODB_URI!);
+async function getDb(): Promise<Db> {
+  if (!clientPromise) {
+    const c = new MongoClient(process.env.MONGODB_URI!);
+    clientPromise = c.connect();
   }
-  return client.db(process.env.MONGODB_DB ?? "nolioapi");
+  const c = await clientPromise;
+  return c.db(process.env.MONGODB_DB ?? "nolioapi");
 }
 
 export interface StoredUser {
@@ -18,13 +20,15 @@ export interface StoredUser {
   profile: Record<string, unknown>;
 }
 
-function usersCol(): Collection<StoredUser> {
+async function usersCol(): Promise<Collection<StoredUser>> {
+  const db = await getDb();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return getDb().collection<any>("users") as Collection<StoredUser>;
+  return db.collection<any>("users") as Collection<StoredUser>;
 }
 
 export async function upsertUser(user: Omit<StoredUser, "fetchedAt">): Promise<void> {
-  await usersCol().updateOne(
+  const col = await usersCol();
+  await col.updateOne(
     { _id: user._id } as Filter<StoredUser>,
     { $set: { ...user, fetchedAt: new Date().toISOString() } },
     { upsert: true }
@@ -32,13 +36,16 @@ export async function upsertUser(user: Omit<StoredUser, "fetchedAt">): Promise<v
 }
 
 export async function getAnyUser(): Promise<StoredUser | null> {
-  return usersCol().findOne();
+  const col = await usersCol();
+  return col.findOne();
 }
 
 export async function getUserById(id: string): Promise<StoredUser | null> {
-  return usersCol().findOne({ _id: id } as Filter<StoredUser>);
+  const col = await usersCol();
+  return col.findOne({ _id: id } as Filter<StoredUser>);
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  await usersCol().deleteOne({ _id: id } as Filter<StoredUser>);
+  const col = await usersCol();
+  await col.deleteOne({ _id: id } as Filter<StoredUser>);
 }
