@@ -66,3 +66,39 @@ export async function getNolioUser(accessToken: string): Promise<Record<string, 
   if (!res.ok) throw new Error(`Failed to fetch user: ${await res.text()}`);
   return res.json();
 }
+
+export async function getAthletes(accessToken: string): Promise<Record<string, unknown>[]> {
+  const res = await fetch(`${BASE_URL}/get/athletes/`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch athletes: ${await res.text()}`);
+  return res.json();
+}
+
+export async function getTrainings(
+  accessToken: string,
+  athleteId: number,
+  from: string,
+  to: string
+): Promise<Record<string, unknown>[]> {
+  const params = new URLSearchParams({ athlete_id: String(athleteId), from, to, limit: "300" });
+  const res = await fetch(`${BASE_URL}/get/training/?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch trainings: ${await res.text()}`);
+  return res.json();
+}
+
+export async function getPlannedTrainings(
+  accessToken: string,
+  athleteId: number,
+  from: string,
+  to: string
+): Promise<Record<string, unknown>[]> {
+  const params = new URLSearchParams({ athlete_id: String(athleteId), from, to, limit: "300" });
+  const res = await fetch(`${BASE_URL}/get/planned/training/?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch planned trainings: ${await res.text()}`);
+  return res.json();
+}
