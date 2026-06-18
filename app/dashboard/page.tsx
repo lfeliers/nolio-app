@@ -3,7 +3,14 @@ import { getIronSession } from "iron-session";
 import Link from "next/link";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { getAthletes, getTrainings, getPlannedTrainings } from "@/lib/nolio";
-import { getAnyUser, upsertAthlete, upsertTraining } from "@/lib/db";
+import {
+  getAnyUser,
+  upsertAthlete,
+  upsertTraining,
+  upsertNolioPlannedTraining,
+  getNolioPlannedTrainings,
+  getPlannedSyncAgeSeconds,
+} from "@/lib/db";
 import FosterLoadChart from "./FosterLoadChart";
 import WeeklyCalendar from "./WeeklyCalendar";
 
@@ -120,17 +127,27 @@ export default async function DashboardPage({
   const selectedId = params.athlete ? Number(params.athlete) : null;
   const selectedAthlete = selectedId ? athletes.find((a) => a.nolio_id === selectedId) ?? null : null;
 
+  const SYNC_TTL_SECONDS = 300; // re-fetch from Nolio if cache is older than 5 min
+
   let trainings: Training[] = [];
   let plannedFull: Training[] = [];
   if (selectedAthlete && selectedId) {
     try {
-      const [t, p] = await Promise.all([
+      const [t, ageSeconds] = await Promise.all([
         getTrainings(accessToken, selectedId, mondayStr, todayStr),
-        getPlannedTrainings(accessToken, selectedId, mondayStr, sundayStr),
+        getPlannedSyncAgeSeconds(selectedId, mondayStr, sundayStr),
       ]);
       trainings = t as Training[];
-      plannedFull = p as Training[];
       await Promise.all(trainings.map((tr) => upsertTraining(tr as Record<string, unknown>, selectedId)));
+
+      if (ageSeconds > SYNC_TTL_SECONDS) {
+        const fresh = await getPlannedTrainings(accessToken, selectedId, mondayStr, sundayStr);
+        await Promise.all(
+          (fresh as Record<string, unknown>[]).map((p) => upsertNolioPlannedTraining(p, selectedId))
+        );
+      }
+
+      plannedFull = (await getNolioPlannedTrainings(selectedId, mondayStr, sundayStr)) as unknown as Training[];
     } catch (err) {
       fetchError = err instanceof Error ? err.message : String(err);
     }
@@ -236,7 +253,9 @@ export default async function DashboardPage({
 
             <hr className="border-gray-800 my-4" />
 
-            <h2 className="text-sm font-semibold text-gray-300 mb-3">This week&apos;s trainings</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-300">This week&apos;s trainings</h2>
+            </div>
 
             {/* weekly calendar */}
             <WeeklyCalendar
@@ -245,6 +264,8 @@ export default async function DashboardPage({
               plannedByDay={plannedByDay}
               todayStr={todayStr}
               athleteId={selectedId!}
+              weekFrom={mondayStr}
+              weekTo={sundayStr}
             />
 
             <hr className="border-gray-800 my-4" />

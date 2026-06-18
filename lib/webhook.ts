@@ -1,3 +1,6 @@
+import { getAnyUser, upsertNolioPlannedTraining, deleteNolioPlannedTraining } from "@/lib/db";
+import { getPlannedTrainingById } from "@/lib/nolio";
+
 export interface WebhookPayload {
   notif_type: string;
   object_type?: string;
@@ -26,20 +29,36 @@ function handleMetric(payload: WebhookPayload): void {
   console.info(`[metric] ${notif_type} — type=${metric_type} #${object_id} at ${date_object} by user ${user_id}`);
 }
 
-function handlePlanned(payload: WebhookPayload): void {
-  const { notif_type, object_type, object_id, user_id, date_object } = payload;
+async function handlePlanned(payload: WebhookPayload): Promise<void> {
+  const { notif_type, object_id, user_id } = payload;
+
   if (notif_type === "deleted_planned_event") {
-    console.info(`[planned] deleted ${object_type} #${object_id} for athlete ${user_id}`);
+    await deleteNolioPlannedTraining(object_id);
+    console.info(`[planned] deleted #${object_id} for athlete ${user_id}`);
     return;
   }
-  console.info(`[planned] ${notif_type} — ${object_type} #${object_id} at ${date_object} for athlete ${user_id}`);
+
+  const dbUser = await getAnyUser();
+  if (!dbUser) {
+    console.warn("[planned] no stored user, cannot fetch training");
+    return;
+  }
+  const training = await getPlannedTrainingById(dbUser.accessToken, object_id, user_id);
+  if (!training) {
+    console.warn(`[planned] could not fetch training #${object_id}`);
+    return;
+  }
+  await upsertNolioPlannedTraining(training, user_id);
+  console.info(`[planned] synced #${object_id} for athlete ${user_id}`);
 }
 
 export function dispatchWebhook(payload: WebhookPayload): void {
   const { notif_type } = payload;
   // Check "planned" before "event" — new_planned_event contains both substrings
   if (notif_type.includes("planned")) {
-    handlePlanned(payload);
+    handlePlanned(payload).catch((err) =>
+      console.error("[planned webhook] error:", err)
+    );
   } else if (notif_type.includes("metric")) {
     handleMetric(payload);
   } else if (notif_type.includes("event")) {

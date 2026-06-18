@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { getPlannedTrainings, createPlannedTraining } from "@/lib/nolio";
-import { generateUniquePartnerId, upsertPlannedTraining } from "@/lib/db";
+import { generateUniquePartnerId, upsertNolioPlannedTraining } from "@/lib/db";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -54,22 +54,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const result = await createPlannedTraining(session.accessToken, body);
-    const nolio_id = (result.nolio_id ?? result.id) as number;
-
-    await upsertPlannedTraining({
-      _id: id_partner,
-      nolio_id,
-      athlete_id,
-      sport_id,
-      name,
-      date_start,
-      ...(description ? { description } : {}),
-      ...(duration ? { duration } : {}),
-      ...(rpe ? { rpe } : {}),
-      ...(distance ? { distance } : {}),
-      ...(elevation_gain ? { elevation_gain } : {}),
-    });
-
+    await upsertNolioPlannedTraining(result, athlete_id, id_partner);
     return NextResponse.json({ ...result, id_partner });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

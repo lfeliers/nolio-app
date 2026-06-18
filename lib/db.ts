@@ -116,43 +116,90 @@ export async function upsertTraining(training: Record<string, unknown>, athleteI
   );
 }
 
-// ── Planned Trainings (API-created) ───────────────────────────────────────
+// ── Nolio Planned Trainings (unified cache) ───────────────────────────────
+// Stores all planned trainings — both Nolio-native and API-created.
+// API-created ones also carry id_partner for future updates.
 
-export interface StoredPlannedTraining {
-  _id: number;       // id_partner — our unique identifier
-  nolio_id: number;  // Nolio's returned id
+export interface StoredNolioPlannedTraining {
+  _id: number;          // nolio_id
+  nolio_id: number;
+  id_partner?: number;  // only set for trainings we created via API
   athlete_id: number;
-  sport_id: number;
-  name: string;
-  date_start: string;
-  description?: string;
+  name?: string;
+  sport?: string;
+  sport_id?: number;
+  date_start?: string;
   duration?: number;
-  rpe?: number;
   distance?: number;
+  rpe?: number;
   elevation_gain?: number;
-  createdAt: string;
+  description?: string;
+  load_foster?: number;
+  syncedAt: string;
+  [key: string]: unknown;
 }
 
-async function plannedTrainingsCol(): Promise<Collection<StoredPlannedTraining>> {
+async function nolioPlannedCol(): Promise<Collection<StoredNolioPlannedTraining>> {
   const db = await getDb();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return db.collection<any>("planned_trainings") as Collection<StoredPlannedTraining>;
+  return db.collection<any>("nolio_planned_trainings") as Collection<StoredNolioPlannedTraining>;
 }
 
-export async function upsertPlannedTraining(t: Omit<StoredPlannedTraining, "createdAt"> & { createdAt?: string }): Promise<void> {
-  const col = await plannedTrainingsCol();
+export async function upsertNolioPlannedTraining(
+  training: Record<string, unknown>,
+  athleteId: number,
+  idPartner?: number
+): Promise<void> {
+  const col = await nolioPlannedCol();
+  const nolio_id = training.nolio_id as number;
   await col.updateOne(
-    { _id: t._id } as Filter<StoredPlannedTraining>,
-    { $set: { ...t, createdAt: t.createdAt ?? new Date().toISOString() } },
+    { _id: nolio_id } as Filter<StoredNolioPlannedTraining>,
+    {
+      $set: {
+        ...training,
+        _id: nolio_id,
+        nolio_id,
+        athlete_id: athleteId,
+        ...(idPartner != null ? { id_partner: idPartner } : {}),
+        syncedAt: new Date().toISOString(),
+      },
+    },
     { upsert: true }
   );
 }
 
+export async function deleteNolioPlannedTraining(nolioId: number): Promise<void> {
+  const col = await nolioPlannedCol();
+  await col.deleteOne({ _id: nolioId } as Filter<StoredNolioPlannedTraining>);
+}
+
+export async function getNolioPlannedTrainings(
+  athleteId: number,
+  from: string,
+  to: string
+): Promise<StoredNolioPlannedTraining[]> {
+  const col = await nolioPlannedCol();
+  return col
+    .find({ athlete_id: athleteId, date_start: { $gte: from, $lte: to } } as Filter<StoredNolioPlannedTraining>)
+    .toArray();
+}
+
+export async function getPlannedSyncAgeSeconds(athleteId: number, from: string, to: string): Promise<number> {
+  const col = await nolioPlannedCol();
+  const newest = await col
+    .find({ athlete_id: athleteId, date_start: { $gte: from, $lte: to } } as Filter<StoredNolioPlannedTraining>)
+    .sort({ syncedAt: -1 })
+    .limit(1)
+    .toArray();
+  if (!newest.length) return Infinity;
+  return (Date.now() - new Date(newest[0].syncedAt).getTime()) / 1000;
+}
+
 export async function generateUniquePartnerId(): Promise<number> {
-  const col = await plannedTrainingsCol();
+  const col = await nolioPlannedCol();
   let id: number;
   do {
     id = Date.now() + Math.floor(Math.random() * 1000);
-  } while (await col.findOne({ _id: id } as Filter<StoredPlannedTraining>));
+  } while (await col.findOne({ id_partner: id } as Filter<StoredNolioPlannedTraining>));
   return id;
 }

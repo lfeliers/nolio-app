@@ -92,14 +92,33 @@ export default function WeeklyCalendar({
   plannedByDay,
   todayStr,
   athleteId,
+  weekFrom,
+  weekTo,
 }: {
   days: Date[];
   doneByDay: Record<string, Training[]>;
   plannedByDay: Record<string, Training[]>;
   todayStr: string;
   athleteId: number;
+  weekFrom: string;
+  weekTo: string;
 }) {
   const [readonlyWorkout, setReadonlyWorkout] = useState<Training | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleRefresh() {
+    setSyncing(true);
+    try {
+      await fetch("/api/nolio/planned/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ athleteId, from: weekFrom, to: weekTo }),
+      });
+      window.location.reload();
+    } finally {
+      setSyncing(false);
+    }
+  }
   const [createDay, setCreateDay] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -162,6 +181,19 @@ export default function WeeklyCalendar({
 
   return (
     <>
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={handleRefresh}
+          disabled={syncing}
+          className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-50 flex items-center gap-1"
+        >
+          <svg className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M23 4v6h-6M1 20v-6h6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {syncing ? "Syncing…" : "Refresh"}
+        </button>
+      </div>
       <div className="grid grid-cols-7 gap-2 mb-6">
         {days.map((day) => {
           const dayStr = toDateStr(day);
