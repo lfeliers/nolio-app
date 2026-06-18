@@ -19,7 +19,6 @@ export interface WebhookPayload {
 
 async function handleEvent(payload: WebhookPayload): Promise<void> {
   const { notif_type, object_type, object_id, user_id } = payload;
-  console.log("[event] payload:", JSON.stringify(payload));
 
   if (object_type !== "Training") {
     console.info(`[event] ignoring ${object_type} #${object_id}`);
@@ -67,7 +66,6 @@ function handleMetric(payload: WebhookPayload): void {
 
 async function handlePlanned(payload: WebhookPayload): Promise<void> {
   const { notif_type, object_id, user_id } = payload;
-  console.log(payload);
   if (notif_type === "deleted_planned_event") {
     await deleteNolioPlannedTraining(object_id);
     console.info(`[planned] deleted #${object_id} for athlete ${user_id}`);
