@@ -2,17 +2,16 @@ import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
 import Link from "next/link";
 import { sessionOptions, SessionData } from "@/lib/session";
-import { getAthletes, getTrainings, getPlannedTrainings } from "@/lib/nolio";
+import { getAthletes } from "@/lib/nolio";
 import {
   getAnyUser,
   upsertAthlete,
-  upsertTraining,
-  upsertNolioPlannedTraining,
+  getTrainings,
   getNolioPlannedTrainings,
-  getPlannedSyncAgeSeconds,
 } from "@/lib/db";
 import FosterLoadChart from "./FosterLoadChart";
 import WeeklyCalendar from "./WeeklyCalendar";
+import SyncButton from "./SyncButton";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +109,7 @@ export default async function DashboardPage({
   const dbUser = await getAnyUser();
   const connectedUser = dbUser?.profile as { email?: string; username?: string } | null ?? null;
 
-  const { monday, mondayStr, todayStr, tomorrowStr, sundayStr } = weekBounds();
+  const { monday, mondayStr, todayStr, sundayStr } = weekBounds();
 
   // Fetch and sync athletes
   let athletes: Athlete[] = [];
@@ -127,27 +126,16 @@ export default async function DashboardPage({
   const selectedId = params.athlete ? Number(params.athlete) : null;
   const selectedAthlete = selectedId ? athletes.find((a) => a.nolio_id === selectedId) ?? null : null;
 
-  const SYNC_TTL_SECONDS = 300; // re-fetch from Nolio if cache is older than 5 min
-
   let trainings: Training[] = [];
   let plannedFull: Training[] = [];
   if (selectedAthlete && selectedId) {
     try {
-      const [t, ageSeconds] = await Promise.all([
-        getTrainings(accessToken, selectedId, mondayStr, todayStr),
-        getPlannedSyncAgeSeconds(selectedId, mondayStr, sundayStr),
+      const [t, p] = await Promise.all([
+        getTrainings(selectedId, mondayStr, todayStr),
+        getNolioPlannedTrainings(selectedId, mondayStr, sundayStr),
       ]);
-      trainings = t as Training[];
-      await Promise.all(trainings.map((tr) => upsertTraining(tr as Record<string, unknown>, selectedId)));
-
-      if (ageSeconds > SYNC_TTL_SECONDS) {
-        const fresh = await getPlannedTrainings(accessToken, selectedId, mondayStr, sundayStr);
-        await Promise.all(
-          (fresh as Record<string, unknown>[]).map((p) => upsertNolioPlannedTraining(p, selectedId))
-        );
-      }
-
-      plannedFull = (await getNolioPlannedTrainings(selectedId, mondayStr, sundayStr)) as unknown as Training[];
+      trainings = t as unknown as Training[];
+      plannedFull = p as unknown as Training[];
     } catch (err) {
       fetchError = err instanceof Error ? err.message : String(err);
     }
@@ -190,6 +178,9 @@ export default async function DashboardPage({
         <span className="font-semibold text-sm">Nolio</span>
         <div className="flex items-center gap-4">
           <span className="text-xs text-green-400">{userLabel}</span>
+          {selectedId && (
+            <SyncButton athleteId={selectedId} from={mondayStr} to={sundayStr} />
+          )}
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"

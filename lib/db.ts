@@ -111,6 +111,13 @@ export async function deleteTraining(nolioId: number): Promise<void> {
   await col.deleteOne({ _id: nolioId } as Filter<StoredTraining>);
 }
 
+export async function getTrainings(athleteId: number, from: string, to: string): Promise<StoredTraining[]> {
+  const col = await trainingsCol();
+  return col
+    .find({ athlete_id: athleteId, date_start: { $gte: from, $lte: to } } as Filter<StoredTraining>)
+    .toArray();
+}
+
 export async function upsertTraining(training: Record<string, unknown>, athleteId: number): Promise<void> {
   const col = await trainingsCol();
   const id = training.nolio_id as number;
