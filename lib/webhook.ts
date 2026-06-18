@@ -92,19 +92,15 @@ async function handlePlanned(payload: WebhookPayload): Promise<void> {
   console.info(`[planned] synced #${object_id} for athlete ${user_id}`);
 }
 
-export function dispatchWebhook(payload: WebhookPayload): void {
+export async function dispatchWebhook(payload: WebhookPayload): Promise<void> {
   const { notif_type } = payload;
   // Check "planned" before "event" — new_planned_event contains both substrings
   if (notif_type.includes("planned")) {
-    handlePlanned(payload).catch((err) =>
-      console.error("[planned webhook] error:", err),
-    );
+    await handlePlanned(payload);
   } else if (notif_type.includes("metric")) {
     handleMetric(payload);
   } else if (notif_type.includes("event")) {
-    handleEvent(payload).catch((err) =>
-      console.error("[event webhook] error:", err),
-    );
+    await handleEvent(payload);
   } else {
     console.warn(`[webhook] unknown notif_type=${notif_type}`);
   }

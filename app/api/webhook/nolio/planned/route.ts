@@ -26,6 +26,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: "ok" });
   }
 
-  dispatchWebhook(payload);
+  await dispatchWebhook(payload);
   return NextResponse.json({ status: "ok" });
 }
