@@ -98,39 +98,10 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // Try session cookie first; fall back to DB (covers accounts linked via Streamlit)
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  let accessToken: string = session.accessToken ?? "";
-  let connectedUser: { email?: string; username?: string } | null = null;
-  if (!accessToken) {
-    const dbUser = await getAnyUser();
-    if (dbUser) {
-      accessToken = dbUser.accessToken;
-      connectedUser = dbUser.profile as { email?: string; username?: string };
-    }
-  } else {
-    const dbUser = await getAnyUser();
-    if (dbUser) connectedUser = dbUser.profile as { email?: string; username?: string };
-  }
-
-  if (!accessToken) {
-    return (
-      <div className="flex h-screen bg-gray-950 text-gray-100 flex-col">
-        <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
-          <span className="font-semibold text-sm">Nolio</span>
-          <a
-            href="/api/auth/login"
-            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          >
-            Connect Nolio
-          </a>
-        </nav>
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          Connect your Nolio account to get started.
-        </div>
-      </div>
-    );
-  }
+  const accessToken: string = session.accessToken ?? "";
+  const dbUser = await getAnyUser();
+  const connectedUser = dbUser?.profile as { email?: string; username?: string } | null ?? null;
 
   const { monday, mondayStr, todayStr, tomorrowStr, sundayStr } = weekBounds();
 

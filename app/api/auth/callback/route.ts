@@ -32,9 +32,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     session.accessToken = tokenData.access_token;
     await session.save();
 
-    return NextResponse.redirect(appUrl());
+    return NextResponse.redirect(`${appUrl()}/dashboard`);
   } catch (err) {
     console.error("OAuth callback error:", err);
-    return NextResponse.redirect(`${appUrl()}/?error=auth_failed`);
+    return NextResponse.redirect(`${appUrl()}/login?error=auth_failed`);
   }
 }

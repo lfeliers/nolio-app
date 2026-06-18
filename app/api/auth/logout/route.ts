@@ -12,5 +12,5 @@ export async function POST(): Promise<NextResponse> {
     await deleteUser(existingUser._id);
   }
   session.destroy();
-  return NextResponse.redirect(appUrl());
+  return NextResponse.redirect(`${appUrl()}/login`);
 }
