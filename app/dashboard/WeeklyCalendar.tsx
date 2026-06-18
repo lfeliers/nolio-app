@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 type Training = {
+  id?: number;
   nolio_id?: number;
   name?: string;
   sport?: string;
@@ -87,13 +88,14 @@ export default function WeeklyCalendar({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedWorkout?.nolio_id) return;
+    const trainingId = selectedWorkout?.id ?? selectedWorkout?.nolio_id;
+    if (!selectedWorkout || !trainingId) return;
     setError(null);
     setSuccess(false);
     setSaving(true);
 
     const body: Record<string, unknown> = {
-      id_partner: selectedWorkout.nolio_id,
+      id_partner: trainingId,
       sport_id: selectedWorkout.sport_id ?? 23,
       name,
       date_start: dateStart,
