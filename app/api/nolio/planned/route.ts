@@ -54,8 +54,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const result = await createPlannedTraining(session.accessToken, body);
-    await upsertNolioPlannedTraining(result, athlete_id, id_partner);
-    return NextResponse.json({ ...result, id_partner });
+    // Nolio may return the training id as "id" instead of "nolio_id"
+    const nolio_id = (result.nolio_id ?? result.id) as number;
+    const normalized = { ...result, nolio_id };
+    await upsertNolioPlannedTraining(normalized, athlete_id, id_partner);
+    return NextResponse.json({ ...normalized, id_partner });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 400 });
