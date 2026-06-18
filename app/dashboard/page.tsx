@@ -5,6 +5,7 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { getAthletes, getTrainings, getPlannedTrainings } from "@/lib/nolio";
 import { getAnyUser, upsertAthlete, upsertTraining } from "@/lib/db";
 import FosterLoadChart from "./FosterLoadChart";
+import WeeklyCalendar from "./WeeklyCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +50,6 @@ function weekBounds() {
   };
 }
 
-function fmtDuration(seconds: number): string {
-  const totalMin = Math.floor(seconds / 60);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m}min`;
-}
 
 function buildChartData(
   trainings: Training[],
@@ -120,7 +115,7 @@ export default async function DashboardPage({
 
   if (!accessToken) {
     return (
-      <div className="flex min-h-screen bg-gray-950 text-gray-100 flex-col">
+      <div className="flex h-screen bg-gray-950 text-gray-100 flex-col">
         <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
           <span className="font-semibold text-sm">Nolio</span>
           <a
@@ -201,7 +196,7 @@ export default async function DashboardPage({
   const userLabel = connectedUser?.email ?? connectedUser?.username ?? "Connected";
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
+    <div className="flex flex-col h-screen bg-gray-950 text-gray-100">
       {/* navbar */}
       <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
         <span className="font-semibold text-sm">Nolio</span>
@@ -273,54 +268,12 @@ export default async function DashboardPage({
             <h2 className="text-sm font-semibold text-gray-300 mb-3">This week&apos;s trainings</h2>
 
             {/* weekly calendar */}
-            <div className="grid grid-cols-7 gap-2 mb-6">
-              {days.map((day) => {
-                const dayStr = toDateStr(day);
-                const done = doneByDay[dayStr] ?? [];
-                const planned = plannedByDay[dayStr] ?? [];
-                const isToday = dayStr === todayStr;
-                return (
-                  <div key={dayStr}>
-                    <p className={`text-xs font-bold mb-0.5 ${isToday ? "text-white" : "text-gray-400"}`}>
-                      {day.toLocaleDateString("en-US", { weekday: "short" })}
-                    </p>
-                    <p className="text-xs text-gray-600 mb-2">
-                      {day.toLocaleDateString("en-US", { day: "numeric", month: "short" })}
-                    </p>
-                    {done.map((t, i) => (
-                      <div
-                        key={i}
-                        className="mb-1.5 rounded-lg border border-red-900 bg-red-950 px-2.5 py-2"
-                      >
-                        <p className="text-xs font-semibold text-red-200 leading-tight">{t.name ?? "—"}</p>
-                        {t.sport && <p className="text-xs text-red-300 mt-0.5">{t.sport}</p>}
-                        {t.duration != null && (
-                          <p className="text-xs text-red-300">{fmtDuration(t.duration)}</p>
-                        )}
-                        {t.distance != null && (
-                          <p className="text-xs text-red-300">{Number(t.distance).toFixed(1)} km</p>
-                        )}
-                      </div>
-                    ))}
-                    {planned.map((t, i) => (
-                      <div
-                        key={i}
-                        className="mb-1.5 rounded-lg border border-dashed border-red-900 px-2.5 py-2"
-                      >
-                        <p className="text-xs font-semibold text-red-200 leading-tight">{t.name ?? "—"}</p>
-                        {t.sport && <p className="text-xs text-red-300 mt-0.5">{t.sport}</p>}
-                        {t.duration != null && (
-                          <p className="text-xs text-red-300">{fmtDuration(t.duration)}</p>
-                        )}
-                        {t.distance != null && (
-                          <p className="text-xs text-red-300">{Number(t.distance).toFixed(1)} km</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
+            <WeeklyCalendar
+              days={days}
+              doneByDay={doneByDay}
+              plannedByDay={plannedByDay}
+              todayStr={todayStr}
+            />
 
             <hr className="border-gray-800 my-4" />
             <h2 className="text-sm font-semibold text-gray-300 mb-3">Cumulative Foster Load</h2>
