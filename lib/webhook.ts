@@ -67,7 +67,8 @@ async function handlePlanned(payload: WebhookPayload): Promise<void> {
     console.warn(`[planned] could not fetch training #${object_id}`);
     return;
   }
-  await upsertNolioPlannedTraining(training, user_id);
+  const nolio_id = (training.nolio_id ?? training.id) as number;
+  await upsertNolioPlannedTraining({ ...training, nolio_id }, user_id);
   console.info(`[planned] synced #${object_id} for athlete ${user_id}`);
 }
 

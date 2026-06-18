@@ -24,7 +24,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   await Promise.all([
     ...trainings.map((t) => upsertTraining(t, athleteId)),
-    ...(planned as Record<string, unknown>[]).map((p) => upsertNolioPlannedTraining(p, athleteId)),
+    ...(planned as Record<string, unknown>[]).map((p) => {
+      const nolio_id = (p.nolio_id ?? p.id) as number;
+      return upsertNolioPlannedTraining({ ...p, nolio_id }, athleteId);
+    }),
   ]);
 
   return NextResponse.json({ trainings: trainings.length, planned: planned.length });
