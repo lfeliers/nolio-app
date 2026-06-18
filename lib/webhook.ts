@@ -19,6 +19,7 @@ export interface WebhookPayload {
 
 async function handleEvent(payload: WebhookPayload): Promise<void> {
   const { notif_type, object_type, object_id, user_id } = payload;
+  console.log("[event] payload:", JSON.stringify(payload));
 
   if (object_type !== "Training") {
     console.info(`[event] ignoring ${object_type} #${object_id}`);
