@@ -273,6 +273,7 @@ export default async function DashboardPage({
               doneByDay={doneByDay}
               plannedByDay={plannedByDay}
               todayStr={todayStr}
+              athleteId={selectedId!}
             />
 
             <hr className="border-gray-800 my-4" />
