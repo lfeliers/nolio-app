@@ -16,22 +16,6 @@ type Training = {
   [key: string]: unknown;
 };
 
-// https://github.com/NolioApp/NolioAPI-Documentation/wiki/Training-Object#sport-map
-const SPORTS: { id: number; label: string }[] = [
-  { id: 1,  label: "Running" },
-  { id: 2,  label: "Cycling" },
-  { id: 3,  label: "Swimming" },
-  { id: 4,  label: "Trail Running" },
-  { id: 5,  label: "Triathlon" },
-  { id: 6,  label: "Duathlon" },
-  { id: 7,  label: "Cross-country skiing" },
-  { id: 8,  label: "Mountain biking" },
-  { id: 9,  label: "Rowing" },
-  { id: 10, label: "Walking" },
-  { id: 11, label: "Hiking" },
-  { id: 23, label: "Other" },
-];
-
 const RPE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function fmtDuration(seconds: number): string {
@@ -72,7 +56,6 @@ export default function WeeklyCalendar({
 
   // form state
   const [name, setName] = useState("");
-  const [sportId, setSportId] = useState("");
   const [dateStart, setDateStart] = useState("");
   const [description, setDescription] = useState("");
   const [durationH, setDurationH] = useState("");
@@ -86,7 +69,6 @@ export default function WeeklyCalendar({
     setError(null);
     setSuccess(false);
     setName(t.name ?? "");
-    setSportId(String(t.sport_id ?? ""));
     setDateStart(t.date_start ?? "");
     setDescription(String(t.description ?? ""));
     const totalSec = t.duration ?? 0;
@@ -112,7 +94,7 @@ export default function WeeklyCalendar({
 
     const body: Record<string, unknown> = {
       id_partner: selectedWorkout.nolio_id,
-      sport_id: parseInt(sportId),
+      sport_id: selectedWorkout.sport_id ?? 23,
       name,
       date_start: dateStart,
       athlete_id: athleteId,
@@ -222,21 +204,6 @@ export default function WeeklyCalendar({
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Sport *</label>
-                <select
-                  required
-                  value={sportId}
-                  onChange={(e) => setSportId(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
-                >
-                  <option value="">Select a sport</option>
-                  {SPORTS.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
               </div>
 
               <div>
