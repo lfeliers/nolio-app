@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getIronSession } from "iron-session";
 import Link from "next/link";
@@ -107,10 +106,35 @@ export default async function DashboardPage({
   // Try session cookie first; fall back to DB (covers accounts linked via Streamlit)
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   let accessToken: string = session.accessToken ?? "";
+  let connectedUser: { email?: string; username?: string } | null = null;
   if (!accessToken) {
     const dbUser = await getAnyUser();
-    if (!dbUser) redirect("/");
-    else accessToken = dbUser.accessToken;
+    if (dbUser) {
+      accessToken = dbUser.accessToken;
+      connectedUser = dbUser.profile as { email?: string; username?: string };
+    }
+  } else {
+    const dbUser = await getAnyUser();
+    if (dbUser) connectedUser = dbUser.profile as { email?: string; username?: string };
+  }
+
+  if (!accessToken) {
+    return (
+      <div className="flex min-h-screen bg-gray-950 text-gray-100 flex-col">
+        <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
+          <span className="font-semibold text-sm">Nolio</span>
+          <a
+            href="/api/auth/login"
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+          >
+            Connect Nolio
+          </a>
+        </nav>
+        <div className="flex-1 flex items-center justify-center text-gray-500">
+          Connect your Nolio account to get started.
+        </div>
+      </div>
+    );
   }
 
   const { monday, mondayStr, todayStr, tomorrowStr, sundayStr } = weekBounds();
@@ -174,15 +198,31 @@ export default async function DashboardPage({
     ? buildChartData(trainings, plannedFull, monday, todayStr)
     : null;
 
+  const userLabel = connectedUser?.email ?? connectedUser?.username ?? "Connected";
+
   return (
-    <div className="flex min-h-screen bg-gray-950 text-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100">
+      {/* navbar */}
+      <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
+        <span className="font-semibold text-sm">Nolio</span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-green-400">{userLabel}</span>
+          <form action="/api/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="px-3 py-1.5 bg-red-700 text-white text-xs rounded hover:bg-red-600"
+            >
+              Disconnect
+            </button>
+          </form>
+        </div>
+      </nav>
+
+      <div className="flex flex-1 overflow-hidden">
       {/* sidebar */}
       <aside className="w-48 shrink-0 border-r border-gray-800 flex flex-col">
         <div className="p-3 border-b border-gray-800">
-          <Link href="/" className="text-xs text-gray-500 hover:text-gray-300">
-            ← Home
-          </Link>
-          <h2 className="mt-1 font-semibold text-sm">Athletes</h2>
+          <h2 className="font-semibold text-sm">Athletes</h2>
         </div>
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {athletes.map((a) => (
@@ -288,6 +328,7 @@ export default async function DashboardPage({
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }
