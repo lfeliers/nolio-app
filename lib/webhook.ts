@@ -1,5 +1,5 @@
-import { getAnyUser, upsertNolioPlannedTraining, deleteNolioPlannedTraining } from "@/lib/db";
-import { getPlannedTrainingById } from "@/lib/nolio";
+import { getAnyUser, upsertNolioPlannedTraining, deleteNolioPlannedTraining, upsertTraining, deleteTraining } from "@/lib/db";
+import { getPlannedTrainingById, getTrainingById } from "@/lib/nolio";
 
 export interface WebhookPayload {
   notif_type: string;
@@ -11,13 +11,32 @@ export interface WebhookPayload {
   metric_type?: string;
 }
 
-function handleEvent(payload: WebhookPayload): void {
-  const { notif_type, object_type, object_id, user_id, date_object } = payload;
-  if (notif_type === "deleted_event") {
-    console.info(`[event] deleted ${object_type} #${object_id} by user ${user_id}`);
+async function handleEvent(payload: WebhookPayload): Promise<void> {
+  const { notif_type, object_type, object_id, user_id } = payload;
+
+  if (object_type !== "Training") {
+    console.info(`[event] ignoring ${object_type} #${object_id}`);
     return;
   }
-  console.info(`[event] ${notif_type} — ${object_type} #${object_id} at ${date_object} by user ${user_id}`);
+
+  if (notif_type === "deleted_event") {
+    await deleteTraining(object_id);
+    console.info(`[event] deleted Training #${object_id} for athlete ${user_id}`);
+    return;
+  }
+
+  const dbUser = await getAnyUser();
+  if (!dbUser) {
+    console.warn("[event] no stored user, cannot fetch training");
+    return;
+  }
+  const training = await getTrainingById(dbUser.accessToken, object_id, user_id);
+  if (!training) {
+    console.warn(`[event] could not fetch Training #${object_id}`);
+    return;
+  }
+  await upsertTraining(training, user_id);
+  console.info(`[event] synced Training #${object_id} for athlete ${user_id}`);
 }
 
 function handleMetric(payload: WebhookPayload): void {
@@ -62,7 +81,9 @@ export function dispatchWebhook(payload: WebhookPayload): void {
   } else if (notif_type.includes("metric")) {
     handleMetric(payload);
   } else if (notif_type.includes("event")) {
-    handleEvent(payload);
+    handleEvent(payload).catch((err) =>
+      console.error("[event webhook] error:", err)
+    );
   } else {
     console.warn(`[webhook] unknown notif_type=${notif_type}`);
   }

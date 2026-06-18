@@ -116,6 +116,20 @@ export async function createPlannedTraining(
   return res.json();
 }
 
+export async function getTrainingById(
+  accessToken: string,
+  id: number,
+  athleteId: number
+): Promise<Record<string, unknown> | null> {
+  const params = new URLSearchParams({ id: String(id), athlete_id: String(athleteId) });
+  const res = await fetch(`${BASE_URL}/get/training/info/?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return Array.isArray(data) ? (data[0] ?? null) : data ?? null;
+}
+
 export async function getPlannedTrainingById(
   accessToken: string,
   id: number,

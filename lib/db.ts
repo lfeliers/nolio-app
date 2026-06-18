@@ -106,6 +106,11 @@ async function trainingsCol(): Promise<Collection<StoredTraining>> {
   return db.collection<any>("trainings") as Collection<StoredTraining>;
 }
 
+export async function deleteTraining(nolioId: number): Promise<void> {
+  const col = await trainingsCol();
+  await col.deleteOne({ _id: nolioId } as Filter<StoredTraining>);
+}
+
 export async function upsertTraining(training: Record<string, unknown>, athleteId: number): Promise<void> {
   const col = await trainingsCol();
   const id = training.nolio_id as number;
