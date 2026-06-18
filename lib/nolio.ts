@@ -89,7 +89,7 @@ export async function getTrainings(
   return res.json();
 }
 
-export async function updatePlannedTraining(
+export async function createPlannedTraining(
   accessToken: string,
   body: {
     id_partner: number;
@@ -104,7 +104,7 @@ export async function updatePlannedTraining(
     athlete_id?: number;
   }
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${BASE_URL}/update/planned/training/`, {
+  const res = await fetch(`${BASE_URL}/create/planned/training/`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -112,7 +112,7 @@ export async function updatePlannedTraining(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Failed to update planned training: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Failed to create planned training: ${await res.text()}`);
   return res.json();
 }
 

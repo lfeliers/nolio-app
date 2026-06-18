@@ -115,3 +115,44 @@ export async function upsertTraining(training: Record<string, unknown>, athleteI
     { upsert: true }
   );
 }
+
+// ── Planned Trainings (API-created) ───────────────────────────────────────
+
+export interface StoredPlannedTraining {
+  _id: number;       // id_partner — our unique identifier
+  nolio_id: number;  // Nolio's returned id
+  athlete_id: number;
+  sport_id: number;
+  name: string;
+  date_start: string;
+  description?: string;
+  duration?: number;
+  rpe?: number;
+  distance?: number;
+  elevation_gain?: number;
+  createdAt: string;
+}
+
+async function plannedTrainingsCol(): Promise<Collection<StoredPlannedTraining>> {
+  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return db.collection<any>("planned_trainings") as Collection<StoredPlannedTraining>;
+}
+
+export async function upsertPlannedTraining(t: Omit<StoredPlannedTraining, "createdAt"> & { createdAt?: string }): Promise<void> {
+  const col = await plannedTrainingsCol();
+  await col.updateOne(
+    { _id: t._id } as Filter<StoredPlannedTraining>,
+    { $set: { ...t, createdAt: t.createdAt ?? new Date().toISOString() } },
+    { upsert: true }
+  );
+}
+
+export async function generateUniquePartnerId(): Promise<number> {
+  const col = await plannedTrainingsCol();
+  let id: number;
+  do {
+    id = Date.now() + Math.floor(Math.random() * 1000);
+  } while (await col.findOne({ _id: id } as Filter<StoredPlannedTraining>));
+  return id;
+}

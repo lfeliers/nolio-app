@@ -16,6 +16,44 @@ type Training = {
   [key: string]: unknown;
 };
 
+const SPORTS: { id: number; label: string }[] = [
+  { id: 2,  label: "Running" },
+  { id: 52, label: "Trail running" },
+  { id: 14, label: "Road cycling" },
+  { id: 15, label: "Mountain cycling" },
+  { id: 19, label: "Swimming" },
+  { id: 16, label: "Hiking" },
+  { id: 45, label: "Walking" },
+  { id: 33, label: "Rowing" },
+  { id: 20, label: "Strength" },
+  { id: 10, label: "Bodybuilding" },
+  { id: 21, label: "Stretching" },
+  { id: 30, label: "Yoga" },
+  { id: 3,  label: "XC ski - Classic" },
+  { id: 4,  label: "XC ski - Skating" },
+  { id: 7,  label: "Ski Mountaineering" },
+  { id: 8,  label: "Climbing" },
+  { id: 18, label: "Virtual ride" },
+  { id: 28, label: "Elliptical trainer" },
+  { id: 51, label: "Stand up paddle" },
+  { id: 38, label: "Biathlon" },
+  { id: 59, label: "Tennis" },
+  { id: 37, label: "Squash" },
+  { id: 53, label: "OCR running" },
+  { id: 34, label: "Orienteering race" },
+  { id: 35, label: "Track cycling" },
+  { id: 36, label: "CX cycling" },
+  { id: 24, label: "Treadmill" },
+  { id: 26, label: "Kayaking - Sea" },
+  { id: 27, label: "Kayaking - River" },
+  { id: 29, label: "Walking sticks" },
+  { id: 31, label: "Canoe - Sea" },
+  { id: 32, label: "Canoe - River" },
+  { id: 5,  label: "Roller ski - Classic" },
+  { id: 6,  label: "Roller ski - Skating" },
+  { id: 12, label: "Other" },
+];
+
 const RPE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function fmtDuration(seconds: number): string {
@@ -36,6 +74,18 @@ function durationToSeconds(h: string, m: string): number | undefined {
   return total > 0 ? total : undefined;
 }
 
+const EMPTY_FORM = {
+  name: "",
+  sportId: "",
+  dateStart: "",
+  description: "",
+  durationH: "",
+  durationM: "",
+  rpe: "",
+  distance: "",
+  elevationGain: "",
+};
+
 export default function WeeklyCalendar({
   days,
   doneByDay,
@@ -49,62 +99,48 @@ export default function WeeklyCalendar({
   todayStr: string;
   athleteId: number;
 }) {
-  const [selectedWorkout, setSelectedWorkout] = useState<Training | null>(null);
+  const [readonlyWorkout, setReadonlyWorkout] = useState<Training | null>(null);
+  const [createDay, setCreateDay] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  // form state
-  const [name, setName] = useState("");
-  const [dateStart, setDateStart] = useState("");
-  const [description, setDescription] = useState("");
-  const [durationH, setDurationH] = useState("");
-  const [durationM, setDurationM] = useState("");
-  const [rpe, setRpe] = useState("");
-  const [distance, setDistance] = useState("");
-  const [elevationGain, setElevationGain] = useState("");
-
-  function openModal(t: Training) {
-    setSelectedWorkout(t);
-    setError(null);
-    setSuccess(false);
-    setName(t.name ?? "");
-    setDateStart(t.date_start ?? "");
-    setDescription(String(t.description ?? ""));
-    const totalSec = t.duration ?? 0;
-    setDurationH(String(Math.floor(totalSec / 3600) || ""));
-    setDurationM(String(Math.floor((totalSec % 3600) / 60) || ""));
-    setRpe(t.rpe != null ? String(t.rpe) : "");
-    setDistance(t.distance != null ? String(t.distance) : "");
-    setElevationGain(t.elevation_gain != null ? String(t.elevation_gain) : "");
+  function setField(key: keyof typeof EMPTY_FORM, value: string) {
+    setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function closeModal() {
-    setSelectedWorkout(null);
+  function openCreate(dayStr: string) {
+    setCreateDay(dayStr);
+    setForm({ ...EMPTY_FORM, dateStart: dayStr });
     setError(null);
     setSuccess(false);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function closeCreate() {
+    setCreateDay(null);
+    setError(null);
+    setSuccess(false);
+  }
+
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedWorkout?.nolio_id) return;
     setError(null);
     setSuccess(false);
     setSaving(true);
 
     const body: Record<string, unknown> = {
-      id_partner: selectedWorkout.nolio_id,
-      sport_id: selectedWorkout.sport_id ?? 23,
-      name,
-      date_start: dateStart,
+      sport_id: parseInt(form.sportId),
+      name: form.name,
+      date_start: form.dateStart,
       athlete_id: athleteId,
     };
-    if (description) body.description = description;
-    const dur = durationToSeconds(durationH, durationM);
+    if (form.description) body.description = form.description;
+    const dur = durationToSeconds(form.durationH, form.durationM);
     if (dur != null) body.duration = dur;
-    if (rpe) body.rpe = parseInt(rpe);
-    if (distance) body.distance = parseFloat(distance);
-    if (elevationGain) body.elevation_gain = parseInt(elevationGain);
+    if (form.rpe) body.rpe = parseInt(form.rpe);
+    if (form.distance) body.distance = parseFloat(form.distance);
+    if (form.elevationGain) body.elevation_gain = parseInt(form.elevationGain);
 
     try {
       const res = await fetch("/api/nolio/planned", {
@@ -133,13 +169,14 @@ export default function WeeklyCalendar({
           const planned = plannedByDay[dayStr] ?? [];
           const isToday = dayStr === todayStr;
           return (
-            <div key={dayStr}>
+            <div key={dayStr} className="flex flex-col">
               <p className={`text-xs font-bold mb-0.5 ${isToday ? "text-white" : "text-gray-400"}`}>
                 {day.toLocaleDateString("en-US", { weekday: "short" })}
               </p>
               <p className="text-xs text-gray-600 mb-2">
                 {day.toLocaleDateString("en-US", { day: "numeric", month: "short" })}
               </p>
+
               {done.map((t, i) => (
                 <div
                   key={i}
@@ -147,63 +184,151 @@ export default function WeeklyCalendar({
                 >
                   <p className="text-xs font-semibold text-red-200 leading-tight">{t.name ?? "—"}</p>
                   {t.sport && <p className="text-xs text-red-300 mt-0.5">{t.sport}</p>}
-                  {t.duration != null && (
+                  {t.duration != null && t.duration > 0 && (
                     <p className="text-xs text-red-300">{fmtDuration(t.duration)}</p>
                   )}
-                  {t.distance != null && (
+                  {t.distance != null && t.distance > 0 && (
                     <p className="text-xs text-red-300">{Number(t.distance).toFixed(1)} km</p>
                   )}
                 </div>
               ))}
+
               {planned.map((t, i) => (
                 <button
                   key={i}
-                  onClick={() => openModal(t)}
-                  className="mb-1.5 w-full text-left rounded-lg border border-dashed border-red-900 px-2.5 py-2 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                  onClick={() => setReadonlyWorkout(t)}
+                  className="mb-1.5 w-full text-left rounded-lg border border-dashed border-red-900 px-2.5 py-2 hover:bg-gray-800/40 transition-colors"
                 >
                   <p className="text-xs font-semibold text-red-200 leading-tight">{t.name ?? "—"}</p>
                   {t.sport && <p className="text-xs text-red-300 mt-0.5">{t.sport}</p>}
-                  {t.duration != null && (
+                  {t.duration != null && t.duration > 0 && (
                     <p className="text-xs text-red-300">{fmtDuration(t.duration)}</p>
                   )}
-                  {t.distance != null && (
+                  {t.distance != null && t.distance > 0 && (
                     <p className="text-xs text-red-300">{Number(t.distance).toFixed(1)} km</p>
                   )}
                 </button>
               ))}
+
+              <button
+                onClick={() => openCreate(dayStr)}
+                className="mt-auto pt-1 w-full text-gray-600 hover:text-gray-400 text-xs flex items-center justify-center gap-1 py-1 rounded hover:bg-gray-800/40 transition-colors"
+              >
+                <span className="text-base leading-none">+</span>
+              </button>
             </div>
           );
         })}
       </div>
 
-      {selectedWorkout && (
+      {/* Read-only workout detail */}
+      {readonlyWorkout && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={closeModal}
+          onClick={() => setReadonlyWorkout(null)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="text-base font-semibold text-white">{readonlyWorkout.name ?? "Planned workout"}</h2>
+              <button
+                onClick={() => setReadonlyWorkout(null)}
+                className="text-gray-500 hover:text-gray-300 text-xl leading-none ml-4"
+              >
+                ×
+              </button>
+            </div>
+            <dl className="space-y-2 text-sm">
+              {readonlyWorkout.sport && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Sport</dt>
+                  <dd className="text-gray-100">{readonlyWorkout.sport}</dd>
+                </div>
+              )}
+              {readonlyWorkout.date_start && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Date</dt>
+                  <dd className="text-gray-100">{readonlyWorkout.date_start}</dd>
+                </div>
+              )}
+              {readonlyWorkout.duration != null && readonlyWorkout.duration > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Duration</dt>
+                  <dd className="text-gray-100">{fmtDuration(readonlyWorkout.duration)}</dd>
+                </div>
+              )}
+              {readonlyWorkout.distance != null && readonlyWorkout.distance > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Distance</dt>
+                  <dd className="text-gray-100">{Number(readonlyWorkout.distance).toFixed(1)} km</dd>
+                </div>
+              )}
+              {readonlyWorkout.elevation_gain != null && readonlyWorkout.elevation_gain > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Elevation gain</dt>
+                  <dd className="text-gray-100">{readonlyWorkout.elevation_gain} m</dd>
+                </div>
+              )}
+              {readonlyWorkout.rpe != null && readonlyWorkout.rpe > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">RPE</dt>
+                  <dd className="text-gray-100">{readonlyWorkout.rpe}</dd>
+                </div>
+              )}
+              {readonlyWorkout.description && String(readonlyWorkout.description).trim() && (
+                <div className="pt-1">
+                  <dt className="text-gray-400 mb-1">Description</dt>
+                  <dd className="text-gray-100 text-xs whitespace-pre-wrap">{String(readonlyWorkout.description)}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </div>
+      )}
+
+      {/* Create planned workout */}
+      {createDay && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={closeCreate}
         >
           <div
             className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-5">
-              <h2 className="text-base font-semibold text-white">Edit planned workout</h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-300 text-xl leading-none ml-4"
-              >
+              <h2 className="text-base font-semibold text-white">New planned workout</h2>
+              <button onClick={closeCreate} className="text-gray-500 hover:text-gray-300 text-xl leading-none ml-4">
                 ×
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Name *</label>
                 <input
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={form.name}
+                  onChange={(e) => setField("name", e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Sport *</label>
+                <select
+                  required
+                  value={form.sportId}
+                  onChange={(e) => setField("sportId", e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
+                >
+                  <option value="">Select a sport</option>
+                  {SPORTS.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -211,8 +336,8 @@ export default function WeeklyCalendar({
                 <input
                   required
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={form.dateStart}
+                  onChange={(e) => setField("dateStart", e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                 />
               </div>
@@ -220,8 +345,8 @@ export default function WeeklyCalendar({
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Description</label>
                 <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={form.description}
+                  onChange={(e) => setField("description", e.target.value)}
                   rows={3}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500 resize-none"
                 />
@@ -235,8 +360,8 @@ export default function WeeklyCalendar({
                       type="number"
                       min="0"
                       placeholder="h"
-                      value={durationH}
-                      onChange={(e) => setDurationH(e.target.value)}
+                      value={form.durationH}
+                      onChange={(e) => setField("durationH", e.target.value)}
                       className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                     />
                     <input
@@ -244,8 +369,8 @@ export default function WeeklyCalendar({
                       min="0"
                       max="59"
                       placeholder="min"
-                      value={durationM}
-                      onChange={(e) => setDurationM(e.target.value)}
+                      value={form.durationM}
+                      onChange={(e) => setField("durationM", e.target.value)}
                       className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                     />
                   </div>
@@ -254,8 +379,8 @@ export default function WeeklyCalendar({
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">RPE</label>
                   <select
-                    value={rpe}
-                    onChange={(e) => setRpe(e.target.value)}
+                    value={form.rpe}
+                    onChange={(e) => setField("rpe", e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                   >
                     <option value="">—</option>
@@ -273,8 +398,8 @@ export default function WeeklyCalendar({
                     type="number"
                     min="0"
                     step="0.1"
-                    value={distance}
-                    onChange={(e) => setDistance(e.target.value)}
+                    value={form.distance}
+                    onChange={(e) => setField("distance", e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                   />
                 </div>
@@ -284,24 +409,20 @@ export default function WeeklyCalendar({
                   <input
                     type="number"
                     min="0"
-                    value={elevationGain}
-                    onChange={(e) => setElevationGain(e.target.value)}
+                    value={form.elevationGain}
+                    onChange={(e) => setField("elevationGain", e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
                   />
                 </div>
               </div>
 
-              {error && (
-                <p className="text-xs text-red-400">{error}</p>
-              )}
-              {success && (
-                <p className="text-xs text-green-400">Workout updated successfully.</p>
-              )}
+              {error && <p className="text-xs text-red-400">{error}</p>}
+              {success && <p className="text-xs text-green-400">Workout created successfully.</p>}
 
               <div className="flex justify-end gap-3 pt-1">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={closeCreate}
                   className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
                 >
                   Cancel
@@ -311,7 +432,7 @@ export default function WeeklyCalendar({
                   disabled={saving}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {saving ? "Saving…" : "Save"}
+                  {saving ? "Creating…" : "Create"}
                 </button>
               </div>
             </form>
