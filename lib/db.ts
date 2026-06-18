@@ -195,6 +195,36 @@ export async function getPlannedSyncAgeSeconds(athleteId: number, from: string, 
   return (Date.now() - new Date(newest[0].syncedAt).getTime()) / 1000;
 }
 
+// ── App Users (local email/password auth) ─────────────────────────────────
+
+export interface AppUser {
+  _id: string; // email
+  email: string;
+  passwordHash: string;
+  createdAt: string;
+}
+
+async function appUsersCol(): Promise<Collection<AppUser>> {
+  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return db.collection<any>("app_users") as Collection<AppUser>;
+}
+
+export async function getAppUserByEmail(email: string): Promise<AppUser | null> {
+  const col = await appUsersCol();
+  return col.findOne({ _id: email } as Filter<AppUser>);
+}
+
+export async function createAppUser(email: string, passwordHash: string): Promise<void> {
+  const col = await appUsersCol();
+  await col.insertOne({
+    _id: email,
+    email,
+    passwordHash,
+    createdAt: new Date().toISOString(),
+  } as AppUser);
+}
+
 export async function generateUniquePartnerId(): Promise<number> {
   const col = await nolioPlannedCol();
   let id: number;
