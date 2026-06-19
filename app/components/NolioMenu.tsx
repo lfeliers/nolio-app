@@ -2,10 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function NolioMenu({ userLabel }: { userLabel: string }) {
+export function NolioMenu({
+  localEmail,
+  nolioName,
+}: {
+  localEmail: string;
+  nolioName: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const initial = userLabel[0]?.toUpperCase() ?? "N";
+  const initial = (nolioName ?? localEmail)[0]?.toUpperCase() ?? "N";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -28,10 +34,19 @@ export function NolioMenu({ userLabel }: { userLabel: string }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-56 rounded-lg border border-gray-700 bg-gray-900 shadow-xl z-50 p-3 flex flex-col gap-3">
+        <div className="absolute left-0 top-full mt-2 w-64 rounded-lg border border-gray-700 bg-gray-900 shadow-xl z-50 p-3 flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-gray-400">Signed in as</span>
-            <span className="text-xs text-green-400 truncate">{userLabel}</span>
+            <span className="text-xs text-white truncate">{localEmail}</span>
+          </div>
+
+          <hr className="border-gray-700" />
+
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-gray-400">Nolio account synced</span>
+            <span className={`text-xs truncate ${nolioName ? "text-green-400" : "text-gray-500"}`}>
+              {nolioName ?? "None"}
+            </span>
           </div>
 
           <hr className="border-gray-700" />

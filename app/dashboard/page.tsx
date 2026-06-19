@@ -170,13 +170,16 @@ export default async function DashboardPage({
     ? buildChartData(trainings, plannedFull, monday, todayStr)
     : null;
 
-  const userLabel = connectedUser?.first_name ?? connectedUser?.email ?? connectedUser?.username ?? "Connected";
+  const localEmail = session.userId;
+  const nolioName = connectedUser
+    ? [connectedUser.first_name, connectedUser.last_name].filter(Boolean).join(" ") || null
+    : null;
 
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100">
       {/* navbar */}
       <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
-        <NolioMenu userLabel={userLabel} />
+        <NolioMenu localEmail={localEmail} nolioName={nolioName} />
         <div />
       </nav>
 
