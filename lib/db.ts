@@ -196,16 +196,6 @@ export async function getNolioPlannedTrainings(
     .toArray();
 }
 
-export async function getPlannedSyncAgeSeconds(athleteId: number, from: string, to: string): Promise<number> {
-  const col = await nolioPlannedCol();
-  const newest = await col
-    .find({ athlete_id: athleteId, date_start: { $gte: from, $lte: to } } as Filter<StoredNolioPlannedTraining>)
-    .sort({ syncedAt: -1 })
-    .limit(1)
-    .toArray();
-  if (!newest.length) return Infinity;
-  return (Date.now() - new Date(newest[0].syncedAt).getTime()) / 1000;
-}
 
 // ── App Users (local email/password auth) ─────────────────────────────────
 
