@@ -11,7 +11,6 @@ import {
 } from "@/lib/db";
 import FosterLoadChart from "./FosterLoadChart";
 import WeeklyCalendar from "./WeeklyCalendar";
-import SyncButton from "./SyncButton";
 import ImportMonthButton from "./ImportMonthButton";
 import { NolioMenu } from "@/app/components/NolioMenu";
 
@@ -178,11 +177,7 @@ export default async function DashboardPage({
       {/* navbar */}
       <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
         <NolioMenu userLabel={userLabel} />
-        <div className="flex items-center gap-4">
-          {selectedId && (
-            <SyncButton athleteId={selectedId} from={mondayStr} to={sundayStr} />
-          )}
-        </div>
+        <div />
       </nav>
 
       <div className="flex flex-1 overflow-hidden">
