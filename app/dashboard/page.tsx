@@ -142,8 +142,6 @@ export default async function DashboardPage({
     }
   }
 
-  const plannedFuture = plannedFull.filter((t) => (t.date_start ?? "") > todayStr);
-
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
@@ -158,12 +156,22 @@ export default async function DashboardPage({
     }
   }
 
+  const matchedPlannedIds = new Set(
+    trainings.map((t) => t.planned_training_id as number | undefined).filter(Boolean)
+  );
+  const plannedUnmatched = plannedFull.filter((t) => !matchedPlannedIds.has(t.nolio_id as number));
+
   const plannedByDay: Record<string, Training[]> = {};
-  for (const t of plannedFuture) {
+  for (const t of plannedUnmatched) {
     if (t.date_start) {
       plannedByDay[t.date_start] ??= [];
       plannedByDay[t.date_start].push(t);
     }
+  }
+
+  const plannedById: Record<number, Training> = {};
+  for (const t of plannedFull) {
+    if (t.nolio_id != null) plannedById[t.nolio_id as number] = t;
   }
 
   const chartData = selectedAthlete
@@ -245,6 +253,7 @@ export default async function DashboardPage({
               days={days}
               doneByDay={doneByDay}
               plannedByDay={plannedByDay}
+              plannedById={plannedById}
               todayStr={todayStr}
               athleteId={selectedId!}
               weekFrom={mondayStr}
