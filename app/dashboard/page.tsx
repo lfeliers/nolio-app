@@ -12,6 +12,7 @@ import {
 import FosterLoadChart from "./FosterLoadChart";
 import WeeklyCalendar from "./WeeklyCalendar";
 import SyncButton from "./SyncButton";
+import { NolioMenu } from "@/app/components/NolioMenu";
 
 export const dynamic = "force-dynamic";
 
@@ -175,20 +176,11 @@ export default async function DashboardPage({
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100">
       {/* navbar */}
       <nav className="h-12 border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
-        <span className="font-semibold text-sm">Nolio</span>
+        <NolioMenu userLabel={userLabel} />
         <div className="flex items-center gap-4">
-          <span className="text-xs text-green-400">{userLabel}</span>
           {selectedId && (
             <SyncButton athleteId={selectedId} from={mondayStr} to={sundayStr} />
           )}
-          <form action="/api/auth/logout" method="POST">
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-red-700 text-white text-xs rounded hover:bg-red-600"
-            >
-              Disconnect
-            </button>
-          </form>
         </div>
       </nav>
 
