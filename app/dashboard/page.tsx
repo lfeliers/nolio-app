@@ -170,7 +170,7 @@ export default async function DashboardPage({
     ? buildChartData(trainings, plannedFull, monday, todayStr)
     : null;
 
-  const localEmail = session.userId;
+  const localEmail = session.localEmail ?? session.userId;
   const nolioName = connectedUser
     ? [connectedUser.first_name, connectedUser.last_name].filter(Boolean).join(" ") || null
     : null;

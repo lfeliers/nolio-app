@@ -25,6 +25,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   session.userId = nolioUser._id;
+  session.localEmail = appUser.email;
   session.accessToken = nolioUser.accessToken;
   await session.save();
 
