@@ -118,12 +118,45 @@ export async function getTrainings(athleteId: number, from: string, to: string):
     .toArray();
 }
 
+async function findMatchingPlannedTraining(
+  athleteId: number,
+  sportId: number,
+  dateStart: string,
+  duration: number
+): Promise<number | null> {
+  const col = await nolioPlannedCol();
+  const candidates = await col
+    .find({ athlete_id: athleteId, sport_id: sportId, date_start: dateStart })
+    .toArray();
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0].nolio_id;
+  return candidates.reduce((best, c) =>
+    Math.abs((c.duration ?? 0) - duration) < Math.abs((best.duration ?? 0) - duration) ? c : best
+  ).nolio_id;
+}
+
 export async function upsertTraining(training: Record<string, unknown>, athleteId: number): Promise<void> {
   const col = await trainingsCol();
   const id = training.nolio_id as number;
+
+  const plannedId = await findMatchingPlannedTraining(
+    athleteId,
+    training.sport_id as number,
+    training.date_start as string,
+    training.duration as number
+  );
+
   await col.updateOne(
     { _id: id } as Filter<StoredTraining>,
-    { $set: { ...training, _id: id, athlete_id: athleteId, syncedAt: new Date().toISOString() } },
+    {
+      $set: {
+        ...training,
+        _id: id,
+        athlete_id: athleteId,
+        planned_training_id: plannedId ?? null,
+        syncedAt: new Date().toISOString(),
+      },
+    },
     { upsert: true }
   );
 }
