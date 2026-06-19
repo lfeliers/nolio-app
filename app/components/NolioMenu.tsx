@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 export function NolioMenu({ userLabel }: { userLabel: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const initial = userLabel[0]?.toUpperCase() ?? "N";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -20,9 +21,10 @@ export function NolioMenu({ userLabel }: { userLabel: string }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="font-semibold text-sm hover:text-gray-300 transition-colors"
+        className="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 transition-colors flex items-center justify-center text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        aria-label="Open menu"
       >
-        Nolio
+        {initial}
       </button>
 
       {open && (
