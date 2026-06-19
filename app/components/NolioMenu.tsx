@@ -42,23 +42,24 @@ export function NolioMenu({
 
           <hr className="border-gray-700" />
 
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-gray-400">Nolio account synced</span>
-            <span className={`text-xs truncate ${nolioName ? "text-green-400" : "text-gray-500"}`}>
-              {nolioName ?? "None"}
-            </span>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-gray-400">Nolio account</span>
+              <span className={`text-xs truncate ${nolioName ? "text-green-400" : "text-gray-500"}`}>
+                {nolioName ?? "Not connected"}
+              </span>
+            </div>
+            {nolioName && (
+              <form action="/api/auth/logout" method="POST">
+                <button
+                  type="submit"
+                  className="w-full text-left px-2 py-1.5 text-xs text-red-400 hover:bg-red-900/30 rounded transition-colors"
+                >
+                  Disconnect Nolio
+                </button>
+              </form>
+            )}
           </div>
-
-          <hr className="border-gray-700" />
-
-          <form action="/api/auth/logout" method="POST">
-            <button
-              type="submit"
-              className="w-full text-left px-2 py-1.5 text-xs text-red-400 hover:bg-red-900/30 rounded transition-colors"
-            >
-              Disconnect
-            </button>
-          </form>
         </div>
       )}
     </div>
