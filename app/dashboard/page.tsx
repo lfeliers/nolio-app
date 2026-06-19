@@ -12,6 +12,7 @@ import {
 import FosterLoadChart from "./FosterLoadChart";
 import WeeklyCalendar from "./WeeklyCalendar";
 import SyncButton from "./SyncButton";
+import ImportMonthButton from "./ImportMonthButton";
 import { NolioMenu } from "@/app/components/NolioMenu";
 
 export const dynamic = "force-dynamic";
@@ -238,6 +239,7 @@ export default async function DashboardPage({
 
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-300">This week&apos;s trainings</h2>
+              <ImportMonthButton athleteId={selectedAthlete.nolio_id} />
             </div>
 
             {/* weekly calendar */}
