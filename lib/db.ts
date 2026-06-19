@@ -237,11 +237,3 @@ export async function createAppUser(email: string, passwordHash: string): Promis
   } as AppUser);
 }
 
-export async function generateUniquePartnerId(): Promise<number> {
-  const col = await nolioPlannedCol();
-  let id: number;
-  do {
-    id = Date.now() + Math.floor(Math.random() * 1000);
-  } while (await col.findOne({ id_partner: id } as Filter<StoredNolioPlannedTraining>));
-  return id;
-}

@@ -89,32 +89,6 @@ export async function getTrainings(
   return res.json();
 }
 
-export async function createPlannedTraining(
-  accessToken: string,
-  body: {
-    id_partner: number;
-    sport_id: number;
-    name: string;
-    date_start: string;
-    description?: string;
-    duration?: number;
-    rpe?: number;
-    distance?: number;
-    elevation_gain?: number;
-    athlete_id?: number;
-  }
-): Promise<Record<string, unknown>> {
-  const res = await fetch(`${BASE_URL}/create/planned/training/`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Failed to create planned training: ${await res.text()}`);
-  return res.json();
-}
 
 export async function getTrainingById(
   accessToken: string,
