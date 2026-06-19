@@ -109,7 +109,7 @@ export default async function DashboardPage({
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   const accessToken: string = session.accessToken ?? "";
   const dbUser = await getAnyUser();
-  const connectedUser = dbUser?.profile as { email?: string; username?: string } | null ?? null;
+  const connectedUser = dbUser?.profile as { email?: string; username?: string; first_name?: string; last_name?: string } | null ?? null;
 
   const { monday, mondayStr, todayStr, sundayStr } = weekBounds();
 
@@ -171,7 +171,7 @@ export default async function DashboardPage({
     ? buildChartData(trainings, plannedFull, monday, todayStr)
     : null;
 
-  const userLabel = connectedUser?.email ?? connectedUser?.username ?? "Connected";
+  const userLabel = connectedUser?.first_name ?? connectedUser?.email ?? connectedUser?.username ?? "Connected";
 
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100">
